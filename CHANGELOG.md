@@ -1,0 +1,7 @@
+# 0.1.0
+
+- Local PlayStation 5 discovery, manual IPv4 setup and monitoring without a PSN account.
+- Paired wake and rest-mode control with state confirmation.
+- Optional Home screen control and title ID, plus game or app activity when reported by the console.
+- English and Russian UI, device registry, and filtered diagnostic exports.
+- The pairing form explains the two PS5 settings required for network wake.

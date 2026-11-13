@@ -1,0 +1,25 @@
+{
+  "entity": {
+    "sensor": {
+      "activity": {
+        "default": "mdi:gamepad-variant"
+      },
+      "power_state": {
+        "default": "mdi:sony-playstation"
+      },
+      "title_id": {
+        "default": "mdi:identifier"
+      }
+    },
+    "switch": {
+      "power": {
+        "default": "mdi:power"
+      }
+    },
+    "button": {
+      "home": {
+        "default": "mdi:home-outline"
+      }
+    }
+  }
+}

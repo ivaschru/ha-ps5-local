@@ -1,0 +1,137 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Find a PlayStation 5",
+        "menu_options": {
+          "discover": "Search the local network",
+          "manual": "Enter an IPv4 address"
+        }
+      },
+      "discover": {
+        "title": "Select a console",
+        "data": {
+          "console_id": "PlayStation 5"
+        }
+      },
+      "manual": {
+        "title": "Console address",
+        "data": {
+          "host": "IPv4 address"
+        }
+      },
+      "reconfigure": {
+        "title": "Update console address",
+        "data": {
+          "host": "IPv4 address"
+        }
+      },
+      "setup": {
+        "title": "Choose a setup mode",
+        "menu_options": {
+          "monitor": "Monitor only",
+          "pair": "Pair for power control"
+        }
+      },
+      "pair": {
+        "title": "Pair with Remote Play",
+        "description": "Enter your Remote Play account ID, or [sign in to PlayStation]({login_url}) and paste the resulting redirect URL. On the awake PS5, open Settings > System > Remote Play > Link Device and enter its eight-digit PIN below.\n\n**To turn on the PS5 from rest mode**, open Settings → System → Power Saving → Features Available in Rest Mode and enable **Stay Connected to the Internet** and **Enable Turning On PS5 from Network**.",
+        "data": {
+          "account_id": "Remote Play account ID",
+          "redirect_url": "PlayStation sign-in redirect URL",
+          "pin": "Link Device PIN"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "No verified response from the console.",
+      "invalid_host": "Enter a unicast IPv4 address.",
+      "wrong_console": "A different PlayStation 5 answered at this address.",
+      "invalid_pin": "Enter the eight digits shown on the console.",
+      "choose_account_method": "Enter either the account ID or the sign-in redirect URL.",
+      "console_asleep": "Wake the console before pairing.",
+      "invalid_account": "The account ID or sign-in redirect could not be used.",
+      "pairing_failed": "Pairing failed. Open Link Device again and use a fresh PIN."
+    },
+    "abort": {
+      "already_configured": "This console is already configured.",
+      "already_in_progress": "Setup is already in progress for this console.",
+      "cannot_connect": "The discovery request could not be sent.",
+      "no_discovered_devices": "No unconfigured PlayStation 5 responded. Start setup again and try entering its IP address.",
+      "reconfigure_successful": "Console address updated.",
+      "reauth_successful": "Pairing saved."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "PlayStation 5 Local",
+        "menu_options": {
+          "passcode": "Set console profile passcode",
+          "start_pairing": "Pair or pair again"
+        }
+      },
+      "passcode": {
+        "title": "Console profile passcode",
+        "description": "If your console user has a four-digit login passcode, enter it here. Leave the field empty to clear a saved passcode.",
+        "data": {
+          "passcode": "Console profile passcode"
+        }
+      },
+      "start_pairing": {
+        "title": "Start pairing",
+        "description": "Submit to open a pairing prompt in Home Assistant."
+      }
+    },
+    "error": {
+      "invalid_passcode": "Enter four digits or leave the field empty."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "power_state": {
+        "name": "Power state",
+        "state": {
+          "awake": "Awake",
+          "rest_mode": "Rest mode"
+        }
+      },
+      "activity": {
+        "name": "Game or app"
+      },
+      "title_id": {
+        "name": "Title ID"
+      }
+    },
+    "switch": {
+      "power": {
+        "name": "Power"
+      }
+    },
+    "button": {
+      "home": {
+        "name": "Home screen"
+      }
+    }
+  },
+  "exceptions": {
+    "pairing_required": {
+      "message": "Pair the console before using power control."
+    },
+    "power_unconfirmed": {
+      "message": "The console did not confirm the requested power state."
+    },
+    "passcode_required": {
+      "message": "Set or correct the console profile passcode in the integration options."
+    },
+    "cannot_connect": {
+      "message": "The configured console could not be reached."
+    },
+    "command_failed": {
+      "message": "The console rejected the Remote Play command."
+    },
+    "console_asleep": {
+      "message": "Wake the console before opening the home screen."
+    }
+  }
+}

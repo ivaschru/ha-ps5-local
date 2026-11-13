@@ -1,0 +1,22 @@
+{
+  "domain": "ps5_local",
+  "name": "PlayStation 5 Local",
+  "categories": [
+    "media_entertainment.gaming"
+  ],
+  "codeowners": [
+    "@ivaschru"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/ivaschru/ha-ps5-local",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/ivaschru/ha-ps5-local/issues",
+  "loggers": [
+    "ps5_remoteplay"
+  ],
+  "requirements": [
+    "ps5-remoteplay==0.1.8"
+  ],
+  "version": "0.1.0"
+}
