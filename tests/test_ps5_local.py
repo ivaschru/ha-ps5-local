@@ -89,6 +89,34 @@ def test_account_inputs():
 
 
 @pytest.mark.asyncio
+async def test_ha_translation_fallback(tmp_path):
+    """Home Assistant selects Russian and falls back to English for other locales."""
+    from homeassistant.helpers.translation import async_get_translations
+
+    source = Path(__file__).resolve().parents[1] / "custom_components" / "ps5_local"
+    shutil.copytree(
+        source,
+        tmp_path / "custom_components" / "ps5_local",
+        ignore=shutil.ignore_patterns("__pycache__"),
+    )
+    hass = HomeAssistant(str(tmp_path))
+    loader.async_setup(hass)
+    try:
+        key = "component.ps5_local.config.step.pair.title"
+        for language, title in (
+            ("ru", "Сопряжение Remote Play"),
+            ("en", "Pair with Remote Play"),
+            ("de", "Pair with Remote Play"),
+        ):
+            strings = await async_get_translations(
+                hass, language, "config", ["ps5_local"]
+            )
+            assert strings[key] == title
+    finally:
+        await asyncio.wait_for(hass.async_stop(force=True), 10)
+
+
+@pytest.mark.asyncio
 async def test_ha_entry_setup(tmp_path, monkeypatch):
     """Drive the registered config flow and the actual sensor platform."""
     source = Path(__file__).resolve().parents[1] / "custom_components" / "ps5_local"

@@ -1,5 +1,7 @@
 # PlayStation 5 Local
 
+**English** · [Русский](README.ru.md)
+
 Monitor and control a PlayStation 5 from Home Assistant over your local network. Each console gets its own device and stable entities. The integration uses Remote Play discovery and control directly, with no MQTT broker or separate app.
 
 | Entity | Behavior |
@@ -28,6 +30,10 @@ Normal polling and control stay on the LAN. Using the Sony sign-in link contacts
 
 For a migration, run monitoring alongside the existing integration first. After checking wake and rest mode, retarget the automations that depend on the old entities. Check their behavior before removing the old integration.
 
+## Interface language
+
+Setup and options follow your Home Assistant profile language. The integration provides Russian and falls back to English for other languages. Home Assistant uses its system language for default entity names. Names you set yourself are preserved.
+
 ## Troubleshooting
 
 - Try manual IPv4 entry if broadcast discovery returns nothing. Both hosts must have a route for local Remote Play. Fully powered-off consoles may be unavailable.
@@ -40,6 +46,5 @@ For a migration, run monitoring alongside the existing integration first. After 
 Run `python -m pytest -q` with Home Assistant Core 2026.11.1 and the dependencies from `requirements-test.txt`. Build the release asset with `python tools/build_release.py --tag v0.1.0`. Attach `dist/ps5_local.zip` to the matching GitHub Release. The default catalog submission requires a published release and passing HACS and hassfest checks. [Marketplace catalog guide](https://contributors.home-assistant.io/marketplace/guides/catalog/)
 
 The power control and registration library is [ps5-remoteplay](https://github.com/iharosi/ps5-remoteplay), based on playactor and Chiaki. The optional Home request uses a frame documented in the [playdirector 0.3.0 source distribution](https://pypi.org/project/playdirector/0.3.0/).
-
 
 AGPL-3.0-only. This project is independent of Sony Interactive Entertainment.
