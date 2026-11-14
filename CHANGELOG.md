@@ -1,3 +1,7 @@
+# 0.1.3
+
+- Accept URL-escaped standalone Sony codes and distinguish rejected codes, account lookup errors and connection failures during pairing.
+
 # 0.1.2
 
 - Use an unambiguous PlayStation Network account already in Home Assistant to pair with only a PIN.

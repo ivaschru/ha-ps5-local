@@ -4,7 +4,7 @@ import asyncio
 import base64
 import binascii
 import re
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, unquote, urlsplit
 
 import voluptuous as vol
 from aiohttp import ClientError
@@ -26,7 +26,11 @@ from ._remoteplay import (
     register,
 )
 from ._remoteplay.const import OAUTH_REDIRECT_URI
-from ._remoteplay.oauth import account_id_from_code
+from ._remoteplay.oauth import (
+    AccountLookupFailed,
+    SignInCodeRejected,
+    account_id_from_code,
+)
 
 from .const import (
     CONF_CONSOLE_ID,
@@ -111,6 +115,10 @@ def sony_sign_in_code(value: str) -> str:
         if len(codes) != 1:
             raise ValueError("Expected one Sony sign-in code")
         value = codes[0]
+    else:
+        # A code copied from the address bar can still contain URL escapes.
+        # Preserve literal "+" and decode exactly once, just as for full URLs.
+        value = unquote(value)
 
     # Keep opaque codes intact and reject whole query strings and URL fragments.
     if not re.fullmatch(r"[A-Za-z0-9._~+/-]+={0,2}", value):
@@ -314,8 +322,14 @@ class PS5ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     account_id = await account_id_from_code(
                         code, async_get_clientsession(self.hass)
                     )
-            except (ClientError, PS5Error, ValueError, OSError, TimeoutError):
+            except SignInCodeRejected:
                 raise PairingError(CONF_REDIRECT_URL, "invalid_account") from None
+            except AccountLookupFailed:
+                raise PairingError("base", "sony_account_lookup_failed") from None
+            except (ClientError, OSError, TimeoutError):
+                raise PairingError("base", "sony_unreachable") from None
+            except PS5Error:
+                raise PairingError("base", "sony_unexpected_response") from None
 
         try:
             async with asyncio.timeout(25):

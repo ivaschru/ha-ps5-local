@@ -63,10 +63,13 @@
       "wrong_console": "A different PlayStation 5 answered at this address.",
       "invalid_pin": "Enter the eight digits shown on the console.",
       "console_asleep": "Wake the console before pairing.",
-      "invalid_account": "PlayStation sign-in failed. Sign in again and use the new link or code.",
+      "invalid_account": "PlayStation rejected the sign-in code. Sign in again using the link above and paste the new full address.",
       "pairing_failed": "Pairing failed. Open Link Device again and use a fresh PIN.",
       "invalid_sign_in": "Enter the PlayStation redirect URL or its authorization code.",
-      "pairing_failed_after_sign_in": "Pairing failed. Get a new PlayStation sign-in code and a fresh PIN from Link Device."
+      "pairing_failed_after_sign_in": "Pairing failed. Get a new PlayStation sign-in code and a fresh PIN from Link Device.",
+      "sony_account_lookup_failed": "PlayStation accepted the code but did not provide a usable account ID. Use an existing PlayStation Network account or enter a Remote Play account ID.",
+      "sony_unreachable": "Home Assistant could not complete the connection to PlayStation. Check its internet connection and get a new sign-in code before retrying.",
+      "sony_unexpected_response": "PlayStation did not complete sign-in. Try again later or use a Remote Play account ID."
     },
     "abort": {
       "already_configured": "This console is already configured.",

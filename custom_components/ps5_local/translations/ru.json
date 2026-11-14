@@ -63,10 +63,13 @@
       "wrong_console": "По этому адресу ответила другая PlayStation 5.",
       "invalid_pin": "Введите восемь цифр с экрана консоли.",
       "console_asleep": "Включите консоль для сопряжения.",
-      "invalid_account": "Вход в PlayStation не удался. Войдите заново и вставьте новую ссылку или код.",
+      "invalid_account": "PlayStation отклонила код входа. Войдите снова по ссылке выше и вставьте новый полный адрес.",
       "pairing_failed": "Сопряжение не удалось. Откройте привязку на PS5 и получите новый PIN.",
       "invalid_sign_in": "Введите ссылку перенаправления Sony или код входа из неё.",
-      "pairing_failed_after_sign_in": "Сопряжение не удалось. Получите новый код входа PlayStation и новый PIN через «Привязать устройство»."
+      "pairing_failed_after_sign_in": "Сопряжение не удалось. Получите новый код входа PlayStation и новый PIN через «Привязать устройство».",
+      "sony_account_lookup_failed": "PlayStation приняла код, но не вернула ID аккаунта. Используйте настроенный аккаунт PlayStation Network или введите ID Remote Play.",
+      "sony_unreachable": "Home Assistant не смог завершить соединение с PlayStation. Проверьте доступ к интернету и получите новый код перед повторной попыткой.",
+      "sony_unexpected_response": "PlayStation не завершила вход. Повторите позже или введите ID аккаунта Remote Play."
     },
     "abort": {
       "already_configured": "Эта консоль уже добавлена.",

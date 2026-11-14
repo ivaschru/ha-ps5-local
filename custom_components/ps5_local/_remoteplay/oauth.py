@@ -33,10 +33,32 @@ def account_id_from_user_id(user_id: str | int) -> str:
     return base64.b64encode(int(user_id).to_bytes(8, "little")).decode()
 
 
+class SignInCodeRejected(OAuthError):
+    """Sony explicitly rejected the authorization grant."""
+
+
+class AccountLookupFailed(OAuthError):
+    """Sony returned a token but no usable account ID."""
+
+
 async def _json(response: aiohttp.ClientResponse, what: str) -> dict:
-    if response.status >= 400:
+    # Never include the response body or token-bearing URL in an exception.
+    if not 200 <= response.status < 300:
+        if what == "token exchange" and response.status in (400, 401):
+            try:
+                error = await response.json(content_type=None)
+            except ValueError:
+                error = None
+            if isinstance(error, dict) and error.get("error") == "invalid_grant":
+                raise SignInCodeRejected("Sony rejected the authorization grant")
         raise OAuthError(f"PSN {what} failed with HTTP {response.status}")
-    return await response.json(content_type=None)
+    try:
+        payload = await response.json(content_type=None)
+    except ValueError:
+        raise OAuthError(f"PSN {what} did not return JSON") from None
+    if not isinstance(payload, dict):
+        raise OAuthError(f"PSN {what} returned an unexpected response")
+    return payload
 
 
 async def account_id_from_redirect(
@@ -59,6 +81,7 @@ async def account_id_from_code(
         async with session.post(
             OAUTH_TOKEN_URL,
             auth=auth,
+            allow_redirects=False,
             data={
                 "code": code,
                 "grant_type": "authorization_code",
@@ -66,14 +89,22 @@ async def account_id_from_code(
             },
         ) as response:
             access_token = (await _json(response, "token exchange")).get("access_token")
-        if not access_token:
-            raise OAuthError("PSN did not return an access token; the code may have expired")
+        if not isinstance(access_token, str) or not access_token:
+            raise OAuthError("PSN did not return an access token")
 
-        async with session.get(f"{OAUTH_TOKEN_URL}/{access_token}", auth=auth) as response:
-            user_id = (await _json(response, "account lookup")).get("user_id")
-        if not user_id:
-            raise OAuthError("PSN account lookup returned no user_id")
-        return account_id_from_user_id(user_id)
+        try:
+            async with session.get(
+                f"{OAUTH_TOKEN_URL}/{access_token}", auth=auth, allow_redirects=False
+            ) as response:
+                user_id = (await _json(response, "account lookup")).get("user_id")
+            if isinstance(user_id, bool) or not isinstance(user_id, (str, int)):
+                raise ValueError
+            number = int(user_id)
+            if not 0 < number < 2**64:
+                raise ValueError
+            return account_id_from_user_id(number)
+        except (OAuthError, ValueError):
+            raise AccountLookupFailed("PSN did not return a usable account ID") from None
     finally:
         if owned:
             await session.close()

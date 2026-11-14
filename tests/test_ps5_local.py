@@ -85,6 +85,7 @@ def test_account_inputs():
     uri = config_flow.OAUTH_REDIRECT_URI
     assert config_flow.sony_sign_in_code("  demo-code-123  ") == "demo-code-123"
     assert config_flow.sony_sign_in_code(f"{uri}?code=demo%2Babc%3D&cid=demo") == "demo+abc="
+    assert config_flow.sony_sign_in_code("demo%2Babc%3D") == "demo+abc="
     for invalid in (
         "code=demo",
         "https://remoteplay.dl.playstation.net.example/remoteplay/redirect?code=demo",
@@ -213,6 +214,31 @@ async def test_pairing_form_suggests_unambiguous_psn_account(tmp_path, monkeypat
         assert flow._pairing_account is None
     finally:
         await asyncio.wait_for(hass.async_stop(force=True), 10)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("status", "payload", "error_type"),
+    [
+        (400, {"error": "invalid_grant"}, config_flow.SignInCodeRejected),
+        (401, {"error": "invalid_client"}, config_flow.PS5Error),
+        (403, {}, config_flow.PS5Error),
+        (302, {}, config_flow.PS5Error),
+        (200, [], config_flow.PS5Error),
+    ],
+)
+async def test_sony_token_response_classification(status, payload, error_type):
+    """Only an explicit rejected grant should prompt the user for a new code."""
+    from types import SimpleNamespace
+
+    from custom_components.ps5_local._remoteplay.oauth import _json
+
+    response = SimpleNamespace(status=status, json=AsyncMock(return_value=payload))
+    with pytest.raises(error_type) as raised:
+        await _json(response, "token exchange")
+    assert isinstance(raised.value, config_flow.SignInCodeRejected) == (
+        error_type is config_flow.SignInCodeRejected
+    )
 
 
 @pytest.mark.asyncio
