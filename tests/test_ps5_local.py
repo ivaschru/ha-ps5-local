@@ -82,10 +82,18 @@ def test_account_inputs():
     assert config_flow.validate_account_id("AQAAAAAAAAA=") == "AQAAAAAAAAA="
     with pytest.raises(ValueError):
         config_flow.validate_account_id("123")
-    with pytest.raises(ValueError):
-        config_flow.validate_redirect(
-            "https://remoteplay.dl.playstation.net.example/remoteplay/redirect?code=demo"
-        )
+    uri = config_flow.OAUTH_REDIRECT_URI
+    assert config_flow.sony_sign_in_code("  demo-code-123  ") == "demo-code-123"
+    assert config_flow.sony_sign_in_code(f"{uri}?code=demo%2Babc%3D&cid=demo") == "demo+abc="
+    for invalid in (
+        "code=demo",
+        "https://remoteplay.dl.playstation.net.example/remoteplay/redirect?code=demo",
+        f"{uri}?cid=demo",
+        f"{uri}?code=&code=demo",
+        f"{uri}?code=demo#fragment",
+    ):
+        with pytest.raises(ValueError):
+            config_flow.sony_sign_in_code(invalid)
 
 
 @pytest.mark.asyncio
@@ -168,7 +176,85 @@ async def test_ha_entry_setup(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_ha_pairing_and_switch(tmp_path, monkeypatch):
+async def test_pairing_form_suggests_unambiguous_psn_account(tmp_path, monkeypatch):
+    """Check the actual HA form schema without starting any Sony session."""
+    from types import SimpleNamespace
+
+    hass = HomeAssistant(str(tmp_path))
+    flow = config_flow.PS5ConfigFlow()
+    flow.hass = hass
+    flow.context = {"source": "user"}
+    accounts = [SimpleNamespace(unique_id="258")]
+    hass.config_entries = ConfigEntries(hass, {})
+
+    def entries(domain, *, include_ignore, include_disabled):
+        assert domain == "playstation_network"
+        assert not include_ignore and not include_disabled
+        return accounts
+
+    monkeypatch.setattr(hass.config_entries, "async_entries", entries)
+    try:
+        choice = await flow.async_step_pair()
+        assert choice["menu_options"] == ["pair_known", "pair_sony"]
+        known = await flow.async_step_pair_known()
+        assert list(map(str, known["data_schema"].schema)) == ["pin"]
+        assert flow._pairing_account == "AgEAAAAAAAA="
+
+        accounts.append(SimpleNamespace(unique_id="259"))
+        form = await flow.async_step_pair()
+        assert form["step_id"] == "pair_sony"
+        for field, field_type, autocomplete in (
+            ("redirect_url", "password", "off"),
+            ("pin", "text", "one-time-code"),
+        ):
+            config = form["data_schema"].schema[field].serialize()["selector"]["text"]
+            assert config.get("type", "text") == field_type
+            assert config["autocomplete"] == autocomplete
+        assert flow._pairing_account is None
+    finally:
+        await asyncio.wait_for(hass.async_stop(force=True), 10)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("use_url", [False, True])
+async def test_sony_pairing_exchanges_only_the_code(tmp_path, monkeypatch, use_url):
+    """Exercise both inputs without a live Sony account or console."""
+    hass = HomeAssistant(str(tmp_path))
+    flow = config_flow.PS5ConfigFlow()
+    flow.hass = hass
+    flow.context = {"source": "user"}
+    flow._console = AWAKE
+    exchange = AsyncMock(return_value="AQAAAAAAAAA=")
+    from custom_components.ps5_local._remoteplay import Credentials
+
+    register = AsyncMock(
+        return_value=Credentials(
+            "AQAAAAAAAAA=", "123", {"PS5-RegistKey": "00" * 16, "RP-Key": "11" * 16}
+        )
+    )
+    read = AsyncMock(return_value=REST)
+    monkeypatch.setattr(config_flow, "read_console", read)
+    monkeypatch.setattr(config_flow, "account_id_from_code", exchange)
+    monkeypatch.setattr(config_flow, "register", register)
+    monkeypatch.setattr(config_flow, "async_get_clientsession", lambda hass: None)
+    code = "demo-code-123"
+    value = f"{config_flow.OAUTH_REDIRECT_URI}?code={code}&cid=123" if use_url else code
+    data = {"redirect_url": value, "pin": "01234567"}
+    try:
+        form = await flow.async_step_pair_sony(data)
+        assert form["errors"] == {"base": "console_asleep"}
+        exchange.assert_not_awaited()
+        read.return_value = AWAKE
+        await flow.async_step_pair_sony(data)
+        exchange.assert_awaited_once_with(code, None)
+        register.assert_awaited_once_with(HOST, "AQAAAAAAAAA=", "01234567", timeout=20)
+    finally:
+        await asyncio.wait_for(hass.async_stop(force=True), 10)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("use_known_account", [False, True])
+async def test_ha_pairing_and_switch(tmp_path, monkeypatch, use_known_account):
     """Use a fake pairing at the physical boundary and the real HA switch service."""
     from homeassistant.helpers import entity_registry
     from custom_components.ps5_local._remoteplay import Credentials
@@ -186,6 +272,17 @@ async def test_ha_pairing_and_switch(tmp_path, monkeypatch):
     monkeypatch.setattr(config_flow, "read_console", read)
     monkeypatch.setattr(config_flow, "register", register)
     monkeypatch.setattr(coordinator, "read_console", read)
+    if use_known_account:
+        from types import SimpleNamespace
+
+        original_entries = hass.config_entries.async_entries
+
+        def entries(domain=None, **kwargs):
+            if domain == "playstation_network":
+                return [SimpleNamespace(unique_id="1")]
+            return original_entries(domain, **kwargs)
+
+        monkeypatch.setattr(hass.config_entries, "async_entries", entries)
     try:
         result = await hass.config_entries.flow.async_init(
             "ps5_local", context={"source": "user"}
@@ -195,9 +292,18 @@ async def test_ha_pairing_and_switch(tmp_path, monkeypatch):
             {"next_step_id": "manual"},
             {"host": HOST},
             {"next_step_id": "pair"},
-            {"pin": "01234567", "account_id": "AQAAAAAAAAA="},
         ):
             result = await hass.config_entries.flow.async_configure(flow_id, data)
+        if use_known_account:
+            assert result["step_id"] == "pair"
+            result = await hass.config_entries.flow.async_configure(
+                flow_id, {"next_step_id": "pair_known"}
+            )
+        assert result["step_id"] == ("pair_known" if use_known_account else "pair_sony")
+        data = {"pin": "01234567"}
+        if not use_known_account:
+            data["redirect_url"] = "id:AQAAAAAAAAA="
+        result = await hass.config_entries.flow.async_configure(flow_id, data)
         assert result["type"] == "create_entry"
         entry = result["result"]
         assert set(entry.data) == {"host", "console_id", "pairing"}

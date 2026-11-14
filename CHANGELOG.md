@@ -1,3 +1,8 @@
+# 0.1.2
+
+- Use an unambiguous PlayStation Network account already in Home Assistant to pair with only a PIN.
+- Accept the full Sony sign-in redirect or just the authorization code. Show examples under the sign-in instructions and mark the PS5 PIN as a one-time code.
+
 # 0.1.1
 
 - Bundle the Remote Play library so the setup wizard can start without reaching PyPI.

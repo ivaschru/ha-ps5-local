@@ -35,7 +35,7 @@ def account_id_from_user_id(user_id: str | int) -> str:
 
 async def _json(response: aiohttp.ClientResponse, what: str) -> dict:
     if response.status >= 400:
-        raise OAuthError(f"PSN {what} failed with HTTP {response.status}: {await response.text()}")
+        raise OAuthError(f"PSN {what} failed with HTTP {response.status}")
     return await response.json(content_type=None)
 
 
@@ -44,7 +44,14 @@ async def account_id_from_redirect(
     session: aiohttp.ClientSession | None = None,
 ) -> str:
     """Exchange the pasted redirect URL for the base64 Remote Play account id."""
-    code = code_from_redirect(redirect_url)
+    return await account_id_from_code(code_from_redirect(redirect_url), session)
+
+
+async def account_id_from_code(
+    code: str,
+    session: aiohttp.ClientSession | None = None,
+) -> str:
+    """Exchange the authorization code without constructing a redirect URL."""
     auth = aiohttp.BasicAuth(OAUTH_CLIENT_ID, OAUTH_CLIENT_SECRET)
     owned = session is None
     session = session or aiohttp.ClientSession()

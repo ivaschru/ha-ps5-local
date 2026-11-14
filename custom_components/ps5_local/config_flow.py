@@ -4,9 +4,10 @@ import asyncio
 import base64
 import binascii
 import re
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 import voluptuous as vol
+from aiohttp import ClientError
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.const import CONF_HOST
@@ -21,14 +22,13 @@ from homeassistant.helpers.selector import (
 from ._remoteplay import (
     DeviceStatus,
     PS5Error,
-    account_id_from_redirect,
     login_url,
     register,
 )
 from ._remoteplay.const import OAUTH_REDIRECT_URI
+from ._remoteplay.oauth import account_id_from_code
 
 from .const import (
-    CONF_ACCOUNT_ID,
     CONF_CONSOLE_ID,
     CONF_PAIRING,
     CONF_PASSCODE,
@@ -45,6 +45,12 @@ from .transport import (
 )
 
 _PASSWORD = TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD))
+# Sony's redirect carries a short-lived authorization code. Keep it masked
+# and tell the browser to skip saved values. Pairing PINs are single use.
+_REDIRECT = TextSelector(
+    TextSelectorConfig(type=TextSelectorType.PASSWORD, autocomplete="off")
+)
+_LINK_PIN = TextSelector(TextSelectorConfig(autocomplete="one-time-code"))
 
 
 def validate_account_id(value: str) -> str:
@@ -58,19 +64,57 @@ def validate_account_id(value: str) -> str:
     return base64.b64encode(raw).decode("ascii")
 
 
-def validate_redirect(value: str) -> str:
-    """Only accept the exact Sony redirect origin and path."""
-    value = value.strip()
-    actual = urlsplit(value)
-    expected = urlsplit(OAUTH_REDIRECT_URI)
-    if (
-        (actual.scheme, actual.netloc, actual.path)
-        != (expected.scheme, expected.netloc, expected.path)
-        or not actual.query
-        or actual.fragment
-        or len(value) > 4096
+def _suggest_psn_account_id(hass, entry) -> str | None:
+    """Read account identifiers only, without making a Sony request."""
+    if entry is not None:
+        # Keep reauthentication tied to the original account when known.
+        saved = entry.data.get(CONF_PAIRING) or {}
+        account_id = saved.get("accountId")
+        if isinstance(account_id, str):
+            try:
+                return validate_account_id(account_id)
+            except ValueError:
+                pass
+
+    accounts = set()
+    for psn_entry in hass.config_entries.async_entries(
+        "playstation_network", include_ignore=False, include_disabled=False
     ):
-        raise ValueError("Invalid redirect")
+        value = psn_entry.unique_id
+        if value is None or not re.fullmatch(r"[0-9]{1,20}", value):
+            continue
+        number = int(value)
+        if 0 < number < 2**64:
+            # Sony stores the account ID as a decimal string. Remote Play
+            # registration expects the same ID as eight little-endian bytes.
+            accounts.add(number)
+    if len(accounts) != 1:
+        return None
+    return base64.b64encode(accounts.pop().to_bytes(8, "little")).decode("ascii")
+
+
+def sony_sign_in_code(value: str) -> str:
+    """Read one authorization code from a full Sony redirect or bare input."""
+    value = value.strip()
+    if len(value) > 4096:
+        raise ValueError("Invalid sign-in code")
+    if "://" in value:
+        actual = urlsplit(value)
+        expected = urlsplit(OAUTH_REDIRECT_URI)
+        if (
+            (actual.scheme, actual.netloc, actual.path)
+            != (expected.scheme, expected.netloc, expected.path)
+            or actual.fragment
+        ):
+            raise ValueError("Invalid Sony redirect")
+        codes = parse_qs(actual.query, keep_blank_values=True).get("code", [])
+        if len(codes) != 1:
+            raise ValueError("Expected one Sony sign-in code")
+        value = codes[0]
+
+    # Keep opaque codes intact and reject whole query strings and URL fragments.
+    if not re.fullmatch(r"[A-Za-z0-9._~+/-]+={0,2}", value):
+        raise ValueError("Invalid sign-in code")
     return value
 
 
@@ -81,6 +125,7 @@ class PS5ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def __init__(self) -> None:
         self._console: Console | None = None
+        self._pairing_account: str | None = None
         self._candidates: dict[str, Console] = {}
 
     @staticmethod
@@ -176,19 +221,38 @@ class PS5ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return await self.async_step_pair()
 
     async def async_step_pair(self, user_input=None) -> ConfigFlowResult:
-        entry = (
-            self._get_reauth_entry()
-            if self.source == config_entries.SOURCE_REAUTH
-            else None
+        self._pairing_account = _suggest_psn_account_id(self.hass, self._pairing_entry())
+        if self._pairing_account is None:
+            return await self.async_step_pair_sony()
+        # Home Assistant's native form has one submit action. Use its menu to
+        # offer a different account without placing hidden IDs in the form.
+        return self.async_show_menu(
+            step_id="pair", menu_options=["pair_known", "pair_sony"]
         )
+
+    async def async_step_pair_known(self, user_input=None) -> ConfigFlowResult:
+        return await self._pair_form("pair_known", user_input)
+
+    async def async_step_pair_sony(self, user_input=None) -> ConfigFlowResult:
+        return await self._pair_form("pair_sony", user_input)
+
+    def _pairing_entry(self):
+        if self.source == config_entries.SOURCE_REAUTH:
+            return self._get_reauth_entry()
+        return None
+
+    async def _pair_form(self, step, user_input) -> ConfigFlowResult:
+        entry = self._pairing_entry()
         errors = {}
+        manual = step == "pair_sony"
         if user_input is not None:
             try:
-                credentials = await self._pair(user_input, entry)
+                credentials = await self._pair(user_input, entry, manual=manual)
             except PairingError as error:
                 errors[error.field] = error.key
             else:
-                # Persist only the fields used by wake and session setup.
+                # Sign-in codes and PINs are single-use. Persist only the
+                # fields needed for wake and subsequent Remote Play sessions.
                 pairing = {
                     "accountId": credentials.account_id,
                     "user-credential": credentials.user_credential,
@@ -202,27 +266,37 @@ class PS5ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         entry, data_updates={CONF_PAIRING: pairing}
                     )
                 return self._finish(pairing)
+        fields = {}
+        placeholders = None
+        if manual:
+            fields[vol.Required(CONF_REDIRECT_URL)] = _REDIRECT
+            placeholders = {"login_url": login_url(), "redirect_uri": OAUTH_REDIRECT_URI}
+        fields[vol.Required(CONF_PIN)] = _LINK_PIN
         return self.async_show_form(
-            step_id="pair",
-            data_schema=vol.Schema(
-                {
-                    vol.Optional(CONF_ACCOUNT_ID): _PASSWORD,
-                    vol.Optional(CONF_REDIRECT_URL): _PASSWORD,
-                    vol.Required(CONF_PIN): _PASSWORD,
-                }
-            ),
-            description_placeholders={"login_url": login_url()},
+            step_id=step,
+            data_schema=vol.Schema(fields),
+            description_placeholders=placeholders,
             errors=errors,
         )
 
-    async def _pair(self, user_input, entry):
-        account = user_input.get(CONF_ACCOUNT_ID, "").strip()
-        redirect = user_input.get(CONF_REDIRECT_URL, "").strip()
+    async def _pair(self, user_input, entry, *, manual):
         pin = user_input[CONF_PIN].strip()
         if not re.fullmatch(r"[0-9]{8}", pin):
             raise PairingError(CONF_PIN, "invalid_pin")
-        if bool(account) == bool(redirect):
-            raise PairingError("base", "choose_account_method")
+        account_id = self._pairing_account
+        code = None
+        if manual:
+            sign_in = user_input[CONF_REDIRECT_URL].strip()
+            try:
+                if sign_in.startswith("id:"):
+                    # An explicit prefix keeps a direct Remote Play ID
+                    # distinguishable from an opaque Sony authorization code.
+                    account_id = validate_account_id(sign_in.removeprefix("id:"))
+                else:
+                    code = sony_sign_in_code(sign_in)
+            except ValueError:
+                raise PairingError(CONF_REDIRECT_URL, "invalid_sign_in") from None
+
         host = entry.data[CONF_HOST] if entry else self._console.host
         identifier = entry.unique_id if entry else self._console.identifier
         try:
@@ -231,22 +305,26 @@ class PS5ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             raise PairingError("base", "cannot_connect") from None
         if console.status != DeviceStatus.AWAKE:
             raise PairingError("base", "console_asleep")
-        try:
-            if account:
-                account_id = validate_account_id(account)
-            else:
-                url = validate_redirect(redirect)
+
+        if code is not None:
+            # Check that the console is available before spending the one-use
+            # code. The shared HA session talks only to Sony's OAuth API.
+            try:
                 async with asyncio.timeout(12):
-                    account_id = await account_id_from_redirect(
-                        url, async_get_clientsession(self.hass)
+                    account_id = await account_id_from_code(
+                        code, async_get_clientsession(self.hass)
                     )
-        except (PS5Error, ValueError, OSError, TimeoutError):
-            raise PairingError("base", "invalid_account") from None
+            except (ClientError, PS5Error, ValueError, OSError, TimeoutError):
+                raise PairingError(CONF_REDIRECT_URL, "invalid_account") from None
+
         try:
             async with asyncio.timeout(25):
                 return await register(host, account_id, pin, timeout=20)
         except (PS5Error, ValueError, OSError, TimeoutError):
-            raise PairingError("base", "pairing_failed") from None
+            error = (
+                "pairing_failed_after_sign_in" if code is not None else "pairing_failed"
+            )
+            raise PairingError("base", error) from None
 
     def _finish(self, pairing=None) -> ConfigFlowResult:
         console = self._console

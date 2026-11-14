@@ -35,10 +35,24 @@
       },
       "pair": {
         "title": "Pair with Remote Play",
-        "description": "Enter your Remote Play account ID, or [sign in to PlayStation]({login_url}) and paste the resulting redirect URL. On the awake PS5, open Settings > System > Remote Play > Link Device and enter its eight-digit PIN below.\n\n**To turn on the PS5 from rest mode**, open Settings → System → Power Saving → Features Available in Rest Mode and enable **Stay Connected to the Internet** and **Enable Turning On PS5 from Network**.",
+        "description": "A PlayStation Network account is available in Home Assistant.",
+        "menu_options": {
+          "pair_known": "Use the available account",
+          "pair_sony": "Use a different account"
+        }
+      },
+      "pair_known": {
+        "title": "Pair with Remote Play",
+        "description": "On the awake PS5, go to Settings → System → Remote Play → Link Device and enter the eight-digit PIN.\n\n**To wake your PS5 from rest mode**, enable **Stay Connected to the Internet** and **Enable Turning On PS5 from Network** under Settings → System → Power Saving → Features Available in Rest Mode.",
         "data": {
-          "account_id": "Remote Play account ID",
-          "redirect_url": "PlayStation sign-in redirect URL",
+          "pin": "Link Device PIN"
+        }
+      },
+      "pair_sony": {
+        "title": "Pair with Remote Play",
+        "description": "[Sign in to PlayStation]({login_url}), then paste the full address from the browser or just the value of `code`.\n\nExample link  \n`{redirect_uri}?code=demo-code-123&cid=demo`\n\nExample code  \n`demo-code-123`\n\nAlready have a Remote Play account ID? Enter it with the prefix `id:`.\n\nOn the awake PS5, go to Settings → System → Remote Play → Link Device and enter the eight-digit PIN.\n\n**To wake your PS5 from rest mode**, enable **Stay Connected to the Internet** and **Enable Turning On PS5 from Network** under Settings → System → Power Saving → Features Available in Rest Mode.",
+        "data": {
+          "redirect_url": "PlayStation sign-in link or code",
           "pin": "Link Device PIN"
         }
       }
@@ -48,10 +62,11 @@
       "invalid_host": "Enter a unicast IPv4 address.",
       "wrong_console": "A different PlayStation 5 answered at this address.",
       "invalid_pin": "Enter the eight digits shown on the console.",
-      "choose_account_method": "Enter either the account ID or the sign-in redirect URL.",
       "console_asleep": "Wake the console before pairing.",
-      "invalid_account": "The account ID or sign-in redirect could not be used.",
-      "pairing_failed": "Pairing failed. Open Link Device again and use a fresh PIN."
+      "invalid_account": "PlayStation sign-in failed. Sign in again and use the new link or code.",
+      "pairing_failed": "Pairing failed. Open Link Device again and use a fresh PIN.",
+      "invalid_sign_in": "Enter the PlayStation redirect URL or its authorization code.",
+      "pairing_failed_after_sign_in": "Pairing failed. Get a new PlayStation sign-in code and a fresh PIN from Link Device."
     },
     "abort": {
       "already_configured": "This console is already configured.",
