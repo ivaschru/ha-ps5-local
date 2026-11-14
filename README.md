@@ -43,8 +43,8 @@ Setup and options follow your Home Assistant profile language. The integration p
 
 ## Development and release
 
-Run `python -m pytest -q` with Home Assistant Core 2026.11.1 and the dependencies from `requirements-test.txt`. Build the release asset with `python tools/build_release.py --tag v0.1.0`. Attach `dist/ps5_local.zip` to the matching GitHub Release. The default catalog submission requires a published release and passing HACS and hassfest checks. [Marketplace catalog guide](https://contributors.home-assistant.io/marketplace/guides/catalog/)
+Run `python -m pytest -q` with Home Assistant Core 2026.11.1 and the dependencies from `requirements-test.txt`. Build the release asset with `python tools/build_release.py --tag v0.1.1`. Attach `dist/ps5_local.zip` to the matching GitHub Release. The default catalog submission requires a published release and passing HACS and hassfest checks. [Marketplace catalog guide](https://contributors.home-assistant.io/marketplace/guides/catalog/)
 
-The power control and registration library is [ps5-remoteplay](https://github.com/iharosi/ps5-remoteplay), based on playactor and Chiaki. The optional Home request uses a frame documented in the [playdirector 0.3.0 source distribution](https://pypi.org/project/playdirector/0.3.0/).
+The ZIP includes the Remote Play library, so the setup wizard does not need to download it from PyPI. The power control and registration library is [ps5-remoteplay](https://github.com/iharosi/ps5-remoteplay), based on playactor and Chiaki. The optional Home request uses a frame documented in the [playdirector 0.3.0 source distribution](https://pypi.org/project/playdirector/0.3.0/).
 
 AGPL-3.0-only. This project is independent of Sony Interactive Entertainment.

@@ -8,7 +8,7 @@ from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from ps5_remoteplay import (
+from ._remoteplay import (
     Credentials,
     DeviceStatus,
     PasscodeMismatch,

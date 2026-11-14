@@ -43,8 +43,8 @@
 
 ## Разработка и выпуск
 
-Запустите `python -m pytest -q` с Home Assistant Core 2026.11.1 и зависимостями из `requirements-test.txt`. Соберите архив командой `python tools/build_release.py --tag v0.1.0` и приложите `dist/ps5_local.zip` к соответствующему релизу GitHub. Для подачи в общий каталог нужен опубликованный релиз и успешные проверки HACS и hassfest. [Руководство по каталогу Marketplace](https://contributors.home-assistant.io/marketplace/guides/catalog/)
+Запустите `python -m pytest -q` с Home Assistant Core 2026.11.1 и зависимостями из `requirements-test.txt`. Соберите архив командой `python tools/build_release.py --tag v0.1.1` и приложите `dist/ps5_local.zip` к соответствующему релизу GitHub. Для подачи в общий каталог нужен опубликованный релиз и успешные проверки HACS и hassfest. [Руководство по каталогу Marketplace](https://contributors.home-assistant.io/marketplace/guides/catalog/)
 
-Для сопряжения и управления питанием используется [ps5-remoteplay](https://github.com/iharosi/ps5-remoteplay), основанная на playactor и Chiaki. Кнопка «Главный экран» использует команду, описанную в [исходниках playdirector 0.3.0](https://pypi.org/project/playdirector/0.3.0/).
+Библиотека Remote Play входит в ZIP. Для запуска мастера скачивать её с PyPI не требуется. Для сопряжения и управления питанием используется [ps5-remoteplay](https://github.com/iharosi/ps5-remoteplay), основанная на playactor и Chiaki. Кнопка «Главный экран» использует команду, описанную в [исходниках playdirector 0.3.0](https://pypi.org/project/playdirector/0.3.0/).
 
 Проект распространяется по лицензии AGPL-3.0-only и не связан с Sony Interactive Entertainment.

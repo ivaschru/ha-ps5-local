@@ -37,6 +37,25 @@ def build(destination: Path, tag: str | None = None) -> Path:
         for file in (COMPONENT / "translations").glob("*.json")
         if re.fullmatch(r"[a-z]{2}(?:-[A-Z]{2})?\.json", file.name)
     )
+    # Include only verified library modules, license and provenance.
+    public_files.update(
+        {
+            "_remoteplay/LICENSE",
+            "_remoteplay/NOTICE.md",
+            "_remoteplay/__init__.py",
+            "_remoteplay/const.py",
+            "_remoteplay/credentials.py",
+            "_remoteplay/crypto.py",
+            "_remoteplay/discovery.py",
+            "_remoteplay/errors.py",
+            "_remoteplay/http.py",
+            "_remoteplay/keys.py",
+            "_remoteplay/oauth.py",
+            "_remoteplay/registration.py",
+            "_remoteplay/session.py",
+            "_remoteplay/wake.py",
+        }
+    )
     if "translations/en.json" not in public_files:
         raise ValueError("English translations are required")
 

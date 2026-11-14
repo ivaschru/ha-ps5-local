@@ -1,7 +1,7 @@
 """Wake a paired PS5 or send it into rest mode."""
 
 from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
-from ps5_remoteplay import DeviceStatus
+from ._remoteplay import DeviceStatus
 
 from .entity import PS5Entity
 

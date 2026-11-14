@@ -13,10 +13,8 @@
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/ivaschru/ha-ps5-local/issues",
   "loggers": [
-    "ps5_remoteplay"
+    "custom_components.ps5_local._remoteplay"
   ],
-  "requirements": [
-    "ps5-remoteplay==0.1.8"
-  ],
-  "version": "0.1.0"
+  "requirements": [],
+  "version": "0.1.1"
 }

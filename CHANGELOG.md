@@ -1,3 +1,7 @@
+# 0.1.1
+
+- Bundle the Remote Play library so the setup wizard can start without reaching PyPI.
+
 # 0.1.0
 
 - Local PlayStation 5 discovery, manual IPv4 setup and monitoring without a PSN account.

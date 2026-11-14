@@ -6,7 +6,7 @@ import socket
 from dataclasses import dataclass
 from ipaddress import IPv4Address
 
-from ps5_remoteplay import DeviceStatus
+from ._remoteplay import DeviceStatus
 
 _QUERY = b"SRCH * HTTP/1.1\ndevice-discovery-protocol-version:00030010\n"
 _PORT = 9302

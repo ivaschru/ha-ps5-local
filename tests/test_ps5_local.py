@@ -10,7 +10,7 @@ from homeassistant import bootstrap, loader
 from homeassistant.config_entries import ConfigEntries
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
-from ps5_remoteplay import DeviceStatus
+from custom_components.ps5_local._remoteplay import DeviceStatus
 
 from custom_components.ps5_local import config_flow, coordinator
 from custom_components.ps5_local.transport import ConsoleUnavailable, parse_reply
@@ -171,7 +171,7 @@ async def test_ha_entry_setup(tmp_path, monkeypatch):
 async def test_ha_pairing_and_switch(tmp_path, monkeypatch):
     """Use a fake pairing at the physical boundary and the real HA switch service."""
     from homeassistant.helpers import entity_registry
-    from ps5_remoteplay import Credentials
+    from custom_components.ps5_local._remoteplay import Credentials
 
     hass = HomeAssistant(str(tmp_path))
     loader.async_setup(hass)

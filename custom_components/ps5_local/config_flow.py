@@ -18,14 +18,14 @@ from homeassistant.helpers.selector import (
     TextSelectorConfig,
     TextSelectorType,
 )
-from ps5_remoteplay import (
+from ._remoteplay import (
     DeviceStatus,
     PS5Error,
     account_id_from_redirect,
     login_url,
     register,
 )
-from ps5_remoteplay.const import OAUTH_REDIRECT_URI
+from ._remoteplay.const import OAUTH_REDIRECT_URI
 
 from .const import (
     CONF_ACCOUNT_ID,

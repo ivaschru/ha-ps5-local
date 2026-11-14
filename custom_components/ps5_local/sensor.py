@@ -2,7 +2,7 @@
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.const import EntityCategory
-from ps5_remoteplay import DeviceStatus
+from ._remoteplay import DeviceStatus
 
 from .entity import PS5Entity
 

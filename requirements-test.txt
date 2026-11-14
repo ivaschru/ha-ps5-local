@@ -1,3 +1,2 @@
-ps5-remoteplay==0.1.8
 pytest==8.4.2
 pytest-asyncio==1.2.0

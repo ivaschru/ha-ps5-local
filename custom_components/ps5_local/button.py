@@ -1,7 +1,7 @@
 """Request the PS5 home screen from Home Assistant."""
 
 from homeassistant.components.button import ButtonEntity
-from ps5_remoteplay import DeviceStatus
+from ._remoteplay import DeviceStatus
 
 from .entity import PS5Entity
 
